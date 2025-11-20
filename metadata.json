@@ -1,0 +1,5 @@
+{
+  "name": "Aplicación de Contabilidad",
+  "description": "Una aplicación de contabilidad para registrar y controlar operaciones contables, organizar información por meses y mostrar gráficas mensuales para análisis visual.",
+  "requestFramePermissions": []
+}
