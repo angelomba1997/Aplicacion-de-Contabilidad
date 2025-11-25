@@ -10,8 +10,9 @@ import TransactionModal from './components/TransactionModal';
 import ConfirmationModal from './components/ui/ConfirmationModal';
 import Orders from './components/Orders';
 import OrderModal from './components/OrderModal';
+import Settings from './components/Settings';
 
-type View = 'dashboard' | 'transactions' | 'orders' | 'reports';
+type View = 'dashboard' | 'transactions' | 'orders' | 'reports' | 'settings';
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('dashboard');
@@ -36,6 +37,10 @@ const App: React.FC = () => {
     const [isOrderConfirmModalOpen, setIsOrderConfirmModalOpen] = useState(false);
     const [orderToDeleteId, setOrderToDeleteId] = useState<string | null>(null);
     const [orderDeleteError, setOrderDeleteError] = useState<string | null>(null);
+
+    // Settings deletion state
+    const [settingsDeleteTarget, setSettingsDeleteTarget] = useState<{ id: string, type: 'category' | 'supplier' | 'licensePlate' } | null>(null);
+    const [settingsDeleteError, setSettingsDeleteError] = useState<string | null>(null);
 
     const refreshData = useCallback(async () => {
         setIsLoading(true);
@@ -122,28 +127,15 @@ const App: React.FC = () => {
         return newPlate;
     };
     
-    const handleDeleteCategory = async (id: string) => {
-        if (window.confirm('¿Seguro que quieres eliminar esta categoría? Esta acción no se puede deshacer.')) {
-            const result = await api.deleteCategory(id);
-            if (result.success) {
-                alert('Categoría eliminada.');
-                await refreshData();
-            } else {
-                alert(`Error: ${result.message}`);
-            }
-        }
+    // Settings Delete Handlers
+    const handleDeleteCategory = (id: string) => {
+        setSettingsDeleteTarget({ id, type: 'category' });
+        setSettingsDeleteError(null);
     };
 
-    const handleDeleteLicensePlate = async (id: string) => {
-        if (window.confirm('¿Seguro que quieres eliminar esta matrícula? Esta acción no se puede deshacer.')) {
-            const result = await api.deleteLicensePlate(id);
-            if (result.success) {
-                alert('Matrícula eliminada.');
-                await refreshData();
-            } else {
-                alert(`Error: ${result.message}`);
-            }
-        }
+    const handleDeleteLicensePlate = (id: string) => {
+        setSettingsDeleteTarget({ id, type: 'licensePlate' });
+        setSettingsDeleteError(null);
     };
 
     const handleAddNewSupplier = async (name: string): Promise<Supplier> => {
@@ -152,16 +144,36 @@ const App: React.FC = () => {
         return newSupplier;
     };
 
-    const handleDeleteSupplier = async (id: string) => {
-        if (window.confirm('¿Seguro que quieres eliminar este proveedor? Esta acción no se puede deshacer.')) {
-            const result = await api.deleteSupplier(id);
-            if (result.success) {
-                alert('Proveedor eliminado.');
-                await refreshData();
-            } else {
-                alert(`Error: ${result.message}`);
-            }
+    const handleDeleteSupplier = (id: string) => {
+        setSettingsDeleteTarget({ id, type: 'supplier' });
+        setSettingsDeleteError(null);
+    };
+
+    const handleConfirmSettingsDelete = async () => {
+        if (!settingsDeleteTarget) return;
+
+        setSettingsDeleteError(null);
+        let result;
+
+        if (settingsDeleteTarget.type === 'category') {
+            result = await api.deleteCategory(settingsDeleteTarget.id);
+        } else if (settingsDeleteTarget.type === 'supplier') {
+            result = await api.deleteSupplier(settingsDeleteTarget.id);
+        } else {
+            result = await api.deleteLicensePlate(settingsDeleteTarget.id);
         }
+
+        if (result.success) {
+            await refreshData();
+            setSettingsDeleteTarget(null);
+        } else {
+            setSettingsDeleteError(result.message || 'Error desconocido al eliminar.');
+        }
+    };
+
+    const handleCancelSettingsDelete = () => {
+        setSettingsDeleteTarget(null);
+        setSettingsDeleteError(null);
     };
 
     const handleOpenOrderModal = (order: Order | null = null) => {
@@ -255,6 +267,18 @@ const App: React.FC = () => {
                         />;
             case 'reports':
                 return <Reports transactions={transactions} selectedDate={selectedDate} />;
+            case 'settings':
+                return <Settings 
+                            categories={categories}
+                            suppliers={suppliers}
+                            licensePlates={licensePlates}
+                            onAddCategory={handleAddNewCategory}
+                            onDeleteCategory={handleDeleteCategory}
+                            onAddSupplier={handleAddNewSupplier}
+                            onDeleteSupplier={handleDeleteSupplier}
+                            onAddLicensePlate={handleAddNewLicensePlate}
+                            onDeleteLicensePlate={handleDeleteLicensePlate}
+                        />;
             default:
                 return <Dashboard 
                            summary={monthlySummary} 
@@ -325,6 +349,7 @@ const App: React.FC = () => {
                     onDeleteSupplier={handleDeleteSupplier}
                 />
             )}
+            {/* Modal para eliminar Transacciones */}
             {isConfirmModalOpen && (
                 <ConfirmationModal
                     isOpen={isConfirmModalOpen}
@@ -337,6 +362,7 @@ const App: React.FC = () => {
                     <p>¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.</p>
                 </ConfirmationModal>
             )}
+            {/* Modal para eliminar Pedidos */}
             {isOrderConfirmModalOpen && (
                 <ConfirmationModal
                     isOpen={isOrderConfirmModalOpen}
@@ -348,6 +374,26 @@ const App: React.FC = () => {
                     errorMessage={orderDeleteError}
                 >
                     <p>¿Está seguro de que desea eliminar este pedido? Esta acción no se puede deshacer.</p>
+                </ConfirmationModal>
+            )}
+             {/* Modal para eliminar Configuración (Proveedores, Categorías, Matrículas) */}
+             {settingsDeleteTarget && (
+                <ConfirmationModal
+                    isOpen={!!settingsDeleteTarget}
+                    onClose={handleCancelSettingsDelete}
+                    onConfirm={handleConfirmSettingsDelete}
+                    title="Confirmar Eliminación"
+                    confirmText="Eliminar"
+                    confirmVariant="danger"
+                    errorMessage={settingsDeleteError}
+                >
+                    <p>
+                        ¿Está seguro de que desea eliminar 
+                        {settingsDeleteTarget.type === 'category' ? ' esta categoría' : 
+                         settingsDeleteTarget.type === 'supplier' ? ' este proveedor' : 
+                         ' esta matrícula'}? 
+                        Esta acción no se puede deshacer.
+                    </p>
                 </ConfirmationModal>
             )}
         </div>

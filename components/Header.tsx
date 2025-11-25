@@ -3,7 +3,7 @@ import React, { Fragment } from 'react';
 
 interface HeaderProps {
     currentView: string;
-    onNavigate: (view: 'dashboard' | 'transactions' | 'orders' | 'reports') => void;
+    onNavigate: (view: 'dashboard' | 'transactions' | 'orders' | 'reports' | 'settings') => void;
     selectedDate: Date;
     onDateChange: (date: Date) => void;
 }
@@ -32,6 +32,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, selectedDate, 
         { key: 'orders', label: 'Pedidos' },
         { key: 'transactions', label: 'Transacciones' },
         { key: 'reports', label: 'Reportes' },
+        { key: 'settings', label: 'Configuración' },
     ];
 
     return (
