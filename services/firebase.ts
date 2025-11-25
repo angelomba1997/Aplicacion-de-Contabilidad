@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD0LjFHVgivkF-LlDSsY7G9AWl9GaHJHmA",
@@ -13,16 +13,16 @@ const firebaseConfig = {
 
 console.log("Initializing Firebase App...");
 const app = initializeApp(firebaseConfig);
-console.log("Initializing Firestore...");
-const db = getFirestore(app);
 
-// Habilitar persistencia offline para mejorar la experiencia con conexiones inestables
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn('La persistencia falló: Múltiples pestañas abiertas.');
-    } else if (err.code == 'unimplemented') {
-        console.warn('La persistencia falló: El navegador no soporta esta característica.');
-    }
+console.log("Initializing Firestore with settings...");
+// Usamos initializeFirestore para poder pasar configuraciones críticas como ignorar undefined
+const db = initializeFirestore(app, {
+    // Esto evita que la app explote si intentas guardar un campo 'undefined'
+    ignoreUndefinedProperties: true,
+    // Configuración moderna de persistencia (caché local)
+    localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+    })
 });
 
 export { db };
