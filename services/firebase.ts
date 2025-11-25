@@ -1,6 +1,6 @@
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD0LjFHVgivkF-LlDSsY7G9AWl9GaHJHmA",
@@ -14,13 +14,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Habilitar persistencia offline para mejorar la experiencia con conexiones inestables
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn('La persistencia falló: Múltiples pestañas abiertas.');
-    } else if (err.code == 'unimplemented') {
-        console.warn('La persistencia falló: El navegador no soporta esta característica.');
-    }
-});
+// La persistencia offline se ha deshabilitado para evitar errores de "future update time"
+// y problemas de caché en entornos de desarrollo web.
+// Si se necesita en producción, descomentar con precaución y manejar la sincronización de reloj.
 
 export { db };
